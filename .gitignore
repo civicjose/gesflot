@@ -1,0 +1,88 @@
+# -----------------------------------
+# Node.js
+# -----------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dist / build outputs
+dist/
+build/
+out/
+.next/
+.vercel/
+.cache/
+.tmp/
+
+# Coverage
+coverage/
+*.lcov
+
+# Logs
+logs/
+*.log
+
+# -----------------------------------
+# React
+# -----------------------------------
+# Create React App
+.eslintcache
+.sass-cache
+.cache/
+public/static/
+
+# Vite
+vite.config.js.timestamp*
+vite.config.ts.timestamp*
+vite.config.mts.timestamp*
+
+# Webpack cache
+webpack-stats.json
+
+# -----------------------------------
+# TypeScript
+# -----------------------------------
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# -----------------------------------
+# Testing
+# -----------------------------------
+/jest/
+.jest-cache/
+.jest/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# -----------------------------------
+# Editors / IDEs
+# -----------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -----------------------------------
+# OS Files
+# -----------------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------------
+# Misc
+# -----------------------------------
+*.local
+*.bak
+*.tmp
