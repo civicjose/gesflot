@@ -1,20 +1,19 @@
-// src/models/userModel.js
 const db = require('../config/db');
 
 const User = {
     findByEmail: async (email) => {
-        const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-        return rows[0];
+        const [filas] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        return filas[0];
     },
 
-    // Crear nuevo usuario
-    create: async (userData) => {
-        const { name, email, password, role } = userData;
-        const [result] = await db.query(
+    // Registro de usuario
+    create: async (datosUsuario) => {
+        const { name, email, password, role } = datosUsuario;
+        const [resultado] = await db.query(
             'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
             [name, email, password, role || 'employee']
         );
-        return result.insertId;
+        return resultado.insertId;
     }
 };
 

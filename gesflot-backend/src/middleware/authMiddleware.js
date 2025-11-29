@@ -1,37 +1,30 @@
 // src/middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
 
-// 1. Middleware para verificar que el usuario tiene un Token válido
+// Middleware para ver si trae el token
 exports.verifyToken = (req, res, next) => {
-    // El token suele venir en el header así: "Authorization: Bearer <token>"
-    const authHeader = req.header('Authorization');
+    const cabecera = req.header('Authorization');
     
-    if (!authHeader) {
-        return res.status(401).json({ message: 'Acceso denegado. No hay token.' });
+    if (!cabecera) {
+        return res.status(401).json({ message: 'No tienes permiso. Falta el token.' });
     }
 
-    // Separamos la palabra "Bearer" del token en sí
-    const token = authHeader.split(' ')[1];
+    // Quitamos la palabra "Bearer "
+    const token = cabecera.split(' ')[1];
 
     try {
-        // Verificamos el token con nuestra clave secreta
-        const verified = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // Si es válido, guardamos los datos del usuario en la petición (req.user)
-        // Así podremos saber quién es en los siguientes pasos
-        req.user = verified;
-        
-        next(); // Continuamos a la siguiente función (la ruta real)
+        const verificado = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = verificado; // Guardamos al usuario en la petición
+        next();
     } catch (error) {
-        res.status(400).json({ message: 'Token no válido o expirado.' });
+        res.status(400).json({ message: 'El token no vale o ha caducado.' });
     }
 };
 
-// 2. Middleware para verificar si el usuario es Administrador
+// Middleware para ver si es jefe (Admin)
 exports.isAdmin = (req, res, next) => {
-    // Como ya ejecutamos verifyToken antes, tenemos acceso a req.user
     if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Acceso denegado. Se requieren permisos de administrador.' });
+        return res.status(403).json({ message: 'Acceso prohibido. Solo administradores.' });
     }
     next();
 };

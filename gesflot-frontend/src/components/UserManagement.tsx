@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { FaTrash, FaUserShield, FaUserTie, FaUsers, FaUserPlus } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
-import UserFormModal from './UserFormModal'; // <--- Importamos el nuevo modal
+import UserFormModal from './UserFormModal'; 
 
-interface User {
+interface Usuario {
     id: number;
     name: string;
     email: string;
@@ -13,41 +13,41 @@ interface User {
 }
 
 const UserManagement: React.FC = () => {
-    const [users, setUsers] = useState<User[]>([]);
+    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
     const [error, setError] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false); // Estado del modal
-    const { user: currentUser } = useAuth(); 
+    const [modalAbierto, setModalAbierto] = useState(false); 
+    const { user: usuarioActual } = useAuth(); 
 
-    const fetchUsers = useCallback(async () => {
+    const cargarUsuarios = useCallback(async () => {
         try {
-            const response = await axios.get<User[]>('/api/users');
-            setUsers(response.data);
+            const res = await axios.get<Usuario[]>('/api/users');
+            setUsuarios(res.data);
         } catch (err) {
-            setError('Error al cargar usuarios.');
+            setError('Error al cargar la lista de usuarios.');
         }
     }, []);
 
     useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+        cargarUsuarios();
+    }, [cargarUsuarios]);
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm('¿Eliminar este usuario permanentemente?')) return;
+    const borrarUsuario = async (id: number) => {
+        if (!window.confirm('¿Seguro que quieres borrar a este usuario?')) return;
         try {
             await axios.delete(`/api/users/${id}`);
-            fetchUsers();
+            cargarUsuarios();
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Error al eliminar');
+            alert(err.response?.data?.message || 'Error al borrar');
         }
     };
 
-    const handleRoleChange = async (id: number, currentRole: string) => {
-        const newRole = currentRole === 'admin' ? 'employee' : 'admin';
-        if (!window.confirm(`¿Cambiar rol de este usuario a ${newRole.toUpperCase()}?`)) return;
+    const cambiarRol = async (id: number, rolActual: string) => {
+        const nuevoRol = rolActual === 'admin' ? 'employee' : 'admin';
+        if (!window.confirm(`¿Cambiar el rol a ${nuevoRol === 'admin' ? 'JEFE' : 'EMPLEADO'}?`)) return;
         
         try {
-            await axios.put(`/api/users/${id}/role`, { role: newRole });
-            fetchUsers();
+            await axios.put(`/api/users/${id}/role`, { role: nuevoRol });
+            cargarUsuarios();
         } catch (err: any) {
             alert(err.response?.data?.message || 'Error al cambiar rol');
         }
@@ -55,26 +55,24 @@ const UserManagement: React.FC = () => {
 
     return (
         <div className="mt-8">
-            {/* Modal de Creación */}
             <UserFormModal 
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSuccess={fetchUsers}
+                isOpen={modalAbierto}
+                onClose={() => setModalAbierto(false)}
+                onSuccess={cargarUsuarios}
             />
 
              <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-semibold text-gray-800 flex items-center space-x-2">
                     <FaUsers className="text-indigo-600" />
-                    <span>Gestión de Usuarios y Roles</span>
+                    <span>Gestión de personal</span>
                 </h3>
                 
-                {/* Botón Añadir Usuario */}
                 <button 
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => setModalAbierto(true)}
                     className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-150 shadow"
                 >
                     <FaUserPlus />
-                    <span>Añadir Usuario</span>
+                    <span>Nuevo usuario</span>
                 </button>
              </div>
 
@@ -87,11 +85,11 @@ const UserManagement: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Opciones</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {users.map((u) => (
+                        {usuarios.map((u) => (
                             <tr key={u.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap font-medium">{u.name}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{u.email}</td>
@@ -99,16 +97,16 @@ const UserManagement: React.FC = () => {
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                         u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
                                     }`}>
-                                        {u.role.toUpperCase()}
+                                        {u.role === 'admin' ? 'Admin' : 'Empleado'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    {u.id !== currentUser?.id && (
+                                    {u.id !== usuarioActual?.id && (
                                         <>
-                                            <button onClick={() => handleRoleChange(u.id, u.role)} title="Cambiar Rol" className="text-indigo-600 hover:text-indigo-900 p-2 hover:bg-indigo-50 rounded-full">
+                                            <button onClick={() => cambiarRol(u.id, u.role)} title="Cambiar permisos" className="text-indigo-600 hover:text-indigo-900 p-2 hover:bg-indigo-50 rounded-full">
                                                 {u.role === 'admin' ? <FaUserTie /> : <FaUserShield />}
                                             </button>
-                                            <button onClick={() => handleDelete(u.id)} title="Eliminar Usuario" className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-full">
+                                            <button onClick={() => borrarUsuario(u.id)} title="Borrar usuario" className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-full">
                                                 <FaTrash />
                                             </button>
                                         </>

@@ -1,76 +1,77 @@
-// src/controllers/vehicleController.js
 const Vehicle = require('../models/vehicleModel');
 
-// 1. Obtener todos los vehículos (GET /api/vehicles)
+// 1. Obtener todos los vehículos
 exports.getAllVehicles = async (req, res) => {
     try {
-        const vehicles = await Vehicle.findAll();
-        res.json(vehicles);
+        const vehiculos = await Vehicle.findAll();
+        res.json(vehiculos);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener la lista de vehículos' });
+        res.status(500).json({ message: 'No se pudo cargar la lista de vehículos.' });
     }
 };
 
-// 2. Crear un nuevo vehículo (POST /api/vehicles)
+// 2. Crear un nuevo vehículo
 exports.createVehicle = async (req, res) => {
     try {
-        // Validación básica de campos obligatorios
         const { make, model, license_plate, mileage } = req.body;
+        
+        // Comprobar que me mandan los datos importantes
         if (!make || !model || !license_plate) {
-            return res.status(400).json({ message: 'Faltan campos obligatorios' });
+            return res.status(400).json({ message: 'Faltan datos obligatorios (marca, modelo o matrícula).' });
         }
         
-        const newVehicleId = await Vehicle.create(req.body);
-        res.status(201).json({ message: 'Vehículo registrado correctamente', id: newVehicleId });
+        const nuevoId = await Vehicle.create(req.body);
+        res.status(201).json({ message: 'Vehículo guardado correctamente.', id: nuevoId });
+
     } catch (error) {
-        // En caso de que la matrícula esté duplicada (error de MySQL)
+        // Si la matrícula ya existe, MySQL da este error
         if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({ message: 'La matrícula ya está registrada' });
+            return res.status(409).json({ message: 'Esa matrícula ya está registrada.' });
         }
         console.error(error);
-        res.status(500).json({ message: 'Error al crear el vehículo' });
+        res.status(500).json({ message: 'Error al guardar el vehículo.' });
     }
 };
 
-// 3. Obtener un vehículo por ID (GET /api/vehicles/:id)
+// 3. Buscar por ID
 exports.getVehicleById = async (req, res) => {
     try {
-        const vehicle = await Vehicle.findById(req.params.id);
-        if (!vehicle) {
-            return res.status(404).json({ message: 'Vehículo no encontrado' });
+        const vehiculo = await Vehicle.findById(req.params.id);
+        if (!vehiculo) {
+            return res.status(404).json({ message: 'No encuentro ese vehículo.' });
         }
-        res.json(vehicle);
+        res.json(vehiculo);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al obtener el vehículo' });
+        res.status(500).json({ message: 'Error al buscar el vehículo.' });
     }
 };
 
-// 4. Actualizar un vehículo (PUT /api/vehicles/:id)
+// 4. Actualizar datos
 exports.updateVehicle = async (req, res) => {
     try {
-        const rowsAffected = await Vehicle.update(req.params.id, req.body);
-        if (rowsAffected === 0) {
-            return res.status(404).json({ message: 'Vehículo no encontrado para actualizar' });
+        const filasAfectadas = await Vehicle.update(req.params.id, req.body);
+        if (filasAfectadas === 0) {
+            return res.status(404).json({ message: 'No se pudo actualizar (quizás no existe).' });
         }
-        res.json({ message: 'Vehículo actualizado correctamente' });
+        res.json({ message: 'Datos del vehículo actualizados.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al actualizar el vehículo' });
+        res.status(500).json({ message: 'Error al actualizar.' });
     }
 };
 
-// 5. Eliminar un vehículo (DELETE /api/vehicles/:id)
+// 5. Eliminar vehículo
 exports.deleteVehicle = async (req, res) => {
     try {
-        const rowsAffected = await Vehicle.remove(req.params.id);
-        if (rowsAffected === 0) {
-            return res.status(404).json({ message: 'Vehículo no encontrado para eliminar' });
+        const filasAfectadas = await Vehicle.remove(req.params.id);
+        if (filasAfectadas === 0) {
+            return res.status(404).json({ message: 'No encuentro el vehículo para borrarlo.' });
         }
-        res.json({ message: 'Vehículo eliminado correctamente' });
+        res.json({ message: 'Vehículo eliminado correctamente.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al eliminar el vehículo' });
+        res.status(500).json({ message: 'Error al borrar. ¿Tiene reservas activas?' });
     }
 };

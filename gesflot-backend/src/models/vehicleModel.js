@@ -1,43 +1,42 @@
-// src/models/vehicleModel.js
 const db = require('../config/db');
 
 const Vehicle = {
-    // [C]REATE: Añadir un nuevo vehículo
-    create: async (data) => {
-        const { make, model, license_plate, mileage, status } = data;
-        const [result] = await db.query(
+    // Insertar nuevo coche
+    create: async (datos) => {
+        const { make, model, license_plate, mileage, status } = datos;
+        const [resultado] = await db.query(
             'INSERT INTO vehicles (make, model, license_plate, mileage, status) VALUES (?, ?, ?, ?, ?)',
-            [make, model, license_plate, mileage, status || 'available'] // Estado por defecto
+            [make, model, license_plate, mileage, status || 'available'] 
         );
-        return result.insertId;
+        return resultado.insertId;
     },
 
-    // [R]EAD: Obtener todos los vehículos
+    // Listar todos ordenados por matrícula
     findAll: async () => {
-        const [rows] = await db.query('SELECT * FROM vehicles ORDER BY license_plate ASC');
-        return rows;
+        const [filas] = await db.query('SELECT * FROM vehicles ORDER BY license_plate ASC');
+        return filas;
     },
 
-    // [R]EAD: Obtener un vehículo por ID
+    // Buscar uno concreto
     findById: async (id) => {
-        const [rows] = await db.query('SELECT * FROM vehicles WHERE id = ?', [id]);
-        return rows[0];
+        const [filas] = await db.query('SELECT * FROM vehicles WHERE id = ?', [id]);
+        return filas[0];
     },
 
-    // [U]PDATE: Actualizar datos de un vehículo
-    update: async (id, data) => {
-        const { make, model, license_plate, mileage, status } = data;
-        const [result] = await db.query(
+    // Modificar
+    update: async (id, datos) => {
+        const { make, model, license_plate, mileage, status } = datos;
+        const [resultado] = await db.query(
             'UPDATE vehicles SET make = ?, model = ?, license_plate = ?, mileage = ?, status = ? WHERE id = ?',
             [make, model, license_plate, mileage, status, id]
         );
-        return result.affectedRows;
+        return resultado.affectedRows;
     },
 
-    // [D]ELETE: Eliminar un vehículo
+    // Eliminar
     remove: async (id) => {
-        const [result] = await db.query('DELETE FROM vehicles WHERE id = ?', [id]);
-        return result.affectedRows;
+        const [resultado] = await db.query('DELETE FROM vehicles WHERE id = ?', [id]);
+        return resultado.affectedRows;
     }
 };
 

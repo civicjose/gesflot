@@ -1,48 +1,45 @@
-// src/controllers/userController.js
 const db = require('../config/db');
-const bcrypt = require('bcryptjs'); // Necesario para encriptar la contraseña
+const bcrypt = require('bcryptjs'); 
 
-// Obtener todos los usuarios
+// Ver todos los usuarios
 exports.getAllUsers = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
-        res.json(users);
+        const [usuarios] = await db.query('SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC');
+        res.json(usuarios);
     } catch (error) {
-        res.status(500).json({ message: 'Error al obtener usuarios' });
+        res.status(500).json({ message: 'Error al cargar usuarios.' });
     }
 };
 
-// Crear nuevo usuario (Admin)
+// Crear usuario (desde el panel de admin)
 exports.createUser = async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
 
-        // Validaciones básicas
         if (!name || !email || !password || !role) {
-            return res.status(400).json({ message: 'Todos los campos son obligatorios.' });
+            return res.status(400).json({ message: 'Rellena todos los campos.' });
         }
 
-        // Verificar si el usuario ya existe
-        const [existing] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-        if (existing.length > 0) {
-            return res.status(400).json({ message: 'El correo electrónico ya está registrado.' });
+        // Miro si el email ya existe
+        const [existente] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        if (existente.length > 0) {
+            return res.status(400).json({ message: 'Ese email ya está en uso.' });
         }
 
-        // Encriptar contraseña
+        // Encripto la contraseña
         const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const passEncriptada = await bcrypt.hash(password, salt);
 
-        // Insertar en la BD
-        const [result] = await db.query(
+        const [resultado] = await db.query(
             'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-            [name, email, hashedPassword, role]
+            [name, email, passEncriptada, role]
         );
 
-        res.status(201).json({ message: 'Usuario creado con éxito', id: result.insertId });
+        res.status(201).json({ message: 'Usuario creado con éxito.', id: resultado.insertId });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error al crear el usuario.' });
+        res.status(500).json({ message: 'Error al crear usuario.' });
     }
 };
 
@@ -50,14 +47,15 @@ exports.createUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
+        // Evitar que el admin se borre a sí mismo
         if (parseInt(id) === req.user.id) {
-            return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta.' });
+            return res.status(400).json({ message: 'No puedes borrar tu propia cuenta.' });
         }
 
         await db.query('DELETE FROM users WHERE id = ?', [id]);
-        res.json({ message: 'Usuario eliminado correctamente' });
+        res.json({ message: 'Usuario eliminado.' });
     } catch (error) {
-        res.status(500).json({ message: 'Error al eliminar usuario' });
+        res.status(500).json({ message: 'Error al eliminar.' });
     }
 };
 
@@ -72,8 +70,8 @@ exports.updateUserRole = async (req, res) => {
         }
 
         await db.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
-        res.json({ message: 'Rol actualizado correctamente' });
+        res.json({ message: 'Permisos actualizados.' });
     } catch (error) {
-        res.status(500).json({ message: 'Error al actualizar rol' });
+        res.status(500).json({ message: 'Error al cambiar el rol.' });
     }
 };

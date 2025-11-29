@@ -2,11 +2,8 @@
 const db = require('../config/db');
 
 const Reservation = {
-    // 1. Verificar disponibilidad y prevenir Overbooking
+    // 1. Verificar disponibilidad (Devuelve true/false)
     checkAvailability: async (vehicle_id, start_time, end_time, exclude_reservation_id = null) => {
-        // Esta es la consulta CLAVE para evitar solapamientos.
-        // Busca reservas existentes para ese vehículo (vehicle_id)
-        // donde los rangos de tiempo se cruzan.
         let query = `
             SELECT COUNT(*) AS count
             FROM reservations
@@ -18,16 +15,27 @@ const Reservation = {
 
         let params = [vehicle_id, start_time, end_time];
 
-        // Añadir exclusión si estamos editando una reserva existente
         if (exclude_reservation_id) {
             query += ' AND id != ?';
             params.push(exclude_reservation_id);
         }
 
         const [rows] = await db.query(query, params);
-        
-        // Si count > 0, significa que hay solapamiento y el vehículo no está disponible
         return rows[0].count === 0;
+    },
+
+    findConflict: async (vehicle_id, start_time, end_time) => {
+        // Buscamos la primera reserva que se solape para sacar sus fechas
+        const [rows] = await db.query(`
+            SELECT start_time, end_time
+            FROM reservations
+            WHERE vehicle_id = ?
+            AND status IN ('pending', 'approved')
+            AND NOT (end_time <= ? OR start_time >= ?)
+            LIMIT 1
+        `, [vehicle_id, start_time, end_time]);
+        
+        return rows[0]; // Devolvemos la reserva conflictiva si existe
     },
 
     // 2. Crear una nueva reserva
@@ -35,12 +43,12 @@ const Reservation = {
         const { user_id, vehicle_id, start_time, end_time } = data;
         const [result] = await db.query(
             'INSERT INTO reservations (user_id, vehicle_id, start_time, end_time, status) VALUES (?, ?, ?, ?, ?)',
-            [user_id, vehicle_id, start_time, end_time, 'pending'] // Siempre empieza como pendiente
+            [user_id, vehicle_id, start_time, end_time, 'pending'] 
         );
         return result.insertId;
     },
 
-    // 3. Obtener todas las reservas (para el calendario del Admin)
+    // 3. Obtener todas las reservas (Admin)
     findAll: async () => {
         const [rows] = await db.query(`
             SELECT r.*, v.license_plate, v.make, v.model, u.name AS user_name 
@@ -52,7 +60,7 @@ const Reservation = {
         return rows;
     },
 
-    // 4. Obtener las reservas de un usuario específico (para el empleado)
+    // 4. Obtener las reservas de un usuario (Empleado)
     findByUser: async (user_id) => {
         const [rows] = await db.query(`
             SELECT r.*, v.license_plate, v.make, v.model
@@ -64,7 +72,7 @@ const Reservation = {
         return rows;
     },
 
-    // 5. Actualizar el estado de una reserva (Aprobar/Rechazar)
+    // 5. Actualizar estado
     updateStatus: async (id, status) => {
         const [result] = await db.query(
             'UPDATE reservations SET status = ? WHERE id = ?',
@@ -73,11 +81,22 @@ const Reservation = {
         return result.affectedRows;
     },
 
-    // 6. Obtener una reserva por ID
+    // 6. Buscar por ID
     findById: async (id) => {
         const [rows] = await db.query('SELECT * FROM reservations WHERE id = ?', [id]);
         return rows[0];
-    }
+    },
+
+    // 7. Obtener disponibilidad pública (para el calendario de empleados)
+    getAvailability: async () => {
+        const [rows] = await db.query(`
+            SELECT r.id, r.vehicle_id, r.start_time, r.end_time, r.status, v.make, v.model, v.license_plate
+            FROM reservations r
+            JOIN vehicles v ON r.vehicle_id = v.id
+            WHERE r.status IN ('pending', 'approved')
+        `);
+        return rows;
+    },
 };
 
 module.exports = Reservation;

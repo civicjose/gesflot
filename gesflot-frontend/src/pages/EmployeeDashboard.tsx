@@ -1,218 +1,265 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { FaCalendarAlt, FaClipboardList, FaSignOutAlt, FaPlus, FaTimes } from 'react-icons/fa';
-import ReservationModal from '../components/ReservationModal.tsx'; 
+import { 
+    FaCalendarAlt, 
+    FaList, 
+    FaSignOutAlt, 
+    FaPlus, 
+    FaCar, 
+    FaClock,
+    FaCheckCircle,
+    FaCalendarCheck
+} from 'react-icons/fa';
+import ReservationModal from '../components/ReservationModal'; 
+import AvailabilityCalendar from '../components/AvailabilityCalendar'; 
 
 // Tipos de datos
-interface Vehicle {
-    id: number;
-    make: string;
-    model: string;
-    license_plate: string;
-}
-
-interface Reservation {
-    id: number;
-    vehicle_id: number;
-    license_plate: string;
-    make: string;
-    model: string;
-    start_time: string;
-    end_time: string;
-    status: 'pending' | 'approved' | 'rejected' | 'completed' | 'canceled';
+interface Vehiculo { id: number; make: string; model: string; license_plate: string; }
+interface Reserva {
+    id: number; vehicle_id: number; license_plate: string; make: string; model: string;
+    start_time: string; end_time: string; status: 'pending' | 'approved' | 'rejected' | 'completed' | 'canceled';
 }
 
 const EmployeeDashboard: React.FC = () => {
     const { user, logout } = useAuth();
-    const [activeTab, setActiveTab] = useState<'calendar' | 'my_reservations'>('calendar');
-    const [reservations, setReservations] = useState<Reservation[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
-    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-
-    // FUNCIÓN R: Obtener las reservas del empleado logueado
-    const fetchMyReservations = useCallback(async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const response = await axios.get<Reservation[]>('/api/reservations/my');
-            setReservations(response.data);
-        } catch (err: any) {
-            setError('Error al cargar tus reservas.');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // FUNCIÓN C: Cancelar reserva
-const handleCancelReservation = async (reservationId: number) => {
-        if (!window.confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return;
-        try {
-            // Llamamos a la ruta de cancelación
-            await axios.put(`/api/reservations/${reservationId}/cancel`); 
-            
-            // --- 🚨 SOLUCIÓN CLAVE: Llamar a la función de lectura tras el éxito 🚨 ---
-            fetchMyReservations(); // Esto fuerza la actualización del estado 'reservations'
-            // ----------------------------------------------------------------------
-        } catch (err: any) {
-            const message = err.response?.data?.message || 'Error al cancelar. Solo puedes cancelar si está Pendiente o Aprobada.';
-            setError(message);
-        }
-    };
-
-    // FUNCIÓN R: Obtener lista de vehículos para el formulario de reserva
-    const fetchVehiclesForBooking = useCallback(async () => {
-        try {
-            const response = await axios.get<Vehicle[]>('/api/vehicles');
-            setVehicles(response.data);
-        } catch (err) {
-            // Manejo silencioso de error (no queremos mostrar un error gigante si no puede cargar la lista)
-        }
-    }, []);
-
-    // --- SOLUCIÓN DEL ERROR 401: Esperar al usuario ---
-    useEffect(() => {
-        // Ejecutar las funciones SOLO si el objeto 'user' ha sido cargado del contexto
-        if (user) { 
-            fetchVehiclesForBooking();
-            fetchMyReservations();
-        }
-    }, [fetchVehiclesForBooking, fetchMyReservations, user]); 
-    // --------------------------------------------------
     
-    // Función para renderizar el contenido de la pestaña activa
-    const renderContent = () => {
-        if (activeTab === 'calendar') {
-            // --- PESTAÑA CALENDARIO ---
-            return (
-                <div className="bg-white p-6 shadow rounded-lg">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-semibold text-gray-800">Calendario de Disponibilidad (PENDIENTE DE IMPLEMENTAR)</h2>
-                        <button 
-                            onClick={() => setIsReservationModalOpen(true)}
-                            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-150 shadow"
-                            disabled={!vehicles.length}
-                        >
-                            <FaPlus />
-                            <span>Solicitar Reserva</span>
-                        </button>
-                    </div>
-                    {vehicles.length === 0 && user && !error && <p className="text-red-500 font-semibold mb-4">No se pudo cargar la flota de vehículos o la flota está vacía.</p>}
-                    <div className="border border-gray-300 h-96 flex items-center justify-center bg-gray-50">
-                        <p className="text-gray-500 italic">Aquí se integrará el componente de Calendario para visualizar la disponibilidad de los vehículos.</p>
-                    </div>
-                </div>
-            );
-        } else {
-            // --- PESTAÑA MIS RESERVAS ---
-            if (loading && user) return <p className="text-indigo-600 p-4">Cargando tus reservas...</p>;
-            
-            return (
-                <div className="bg-white p-6 shadow rounded-lg">
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Mis Solicitudes de Reserva</h2>
-                    
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehículo</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {reservations.map((res) => (
-                                    <tr key={res.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{res.make} ({res.license_plate})</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                            De: {new Date(res.start_time).toLocaleString()} <br/>
-                                            A: {new Date(res.end_time).toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                res.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                res.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-red-100 text-red-800'
-                                            }`}>
-                                                {res.status.charAt(0).toUpperCase() + res.status.slice(1)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            {res.status === 'pending' || res.status === 'approved' ? (
-                                                <button 
-                                                    onClick={() => handleCancelReservation(res.id)}
-                                                    className="text-red-600 hover:text-red-800 transition duration-150 p-2 rounded-full hover:bg-gray-100"
-                                                    title="Cancelar Reserva"
-                                                >
-                                                    <FaTimes />
-                                                </button>
-                                            ) : null}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    {reservations.length === 0 && <p className="mt-4 text-gray-500 italic">No tienes reservas activas ni pendientes.</p>}
-                </div>
-            );
+    // Pestaña activa
+    const [vistaActiva, setVistaActiva] = useState<'calendario' | 'listado'>('calendario');
+    
+    // Datos
+    const [misReservas, setMisReservas] = useState<Reserva[]>([]);
+    const [reservasGlobales, setReservasGlobales] = useState<Reserva[]>([]);
+    const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+    
+    // Control de carga
+    const [cargando, setCargando] = useState(true);
+    const [modalAbierto, setModalAbierto] = useState(false);
+
+    // Cargar datos del servidor
+    const cargarDatos = useCallback(async () => {
+        setCargando(true);
+        try {
+            const [resMis, resGlobal, resCoches] = await Promise.all([
+                axios.get<Reserva[]>('/api/reservations/my'),
+                axios.get<Reserva[]>('/api/reservations/availability'),
+                axios.get<Vehiculo[]>('/api/vehicles')
+            ]);
+
+            setMisReservas(resMis.data);
+            setReservasGlobales(resGlobal.data);
+            setVehiculos(resCoches.data);
+
+        } catch (err) {
+            console.error("Fallo al cargar:", err);
+        } finally {
+            setCargando(false);
+        }
+    }, []);
+
+    useEffect(() => { 
+        if (user) cargarDatos(); 
+    }, [user, cargarDatos]);
+
+    // Cancelar reserva
+    const cancelarReserva = async (id: number) => {
+        if (!window.confirm('¿Seguro que quieres cancelar?')) return;
+        try {
+            await axios.put(`/api/reservations/${id}/cancel`);
+            cargarDatos(); 
+        } catch (error) { 
+            alert('No se pudo cancelar.'); 
         }
     };
 
+    // Cifras para el resumen
+    const pendientes = misReservas.filter(r => r.status === 'pending').length;
+    const confirmadas = misReservas.filter(r => r.status === 'approved').length;
 
     return (
-        <div className="min-h-screen p-8 bg-gray-50">
-            {/* Modal de Solicitud de Reserva */}
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+            {/* Modal para pedir coche */}
             <ReservationModal 
-                isOpen={isReservationModalOpen}
-                onClose={() => setIsReservationModalOpen(false)}
-                onSuccess={fetchMyReservations}
-                availableVehicles={vehicles}
+                isOpen={modalAbierto} 
+                onClose={() => setModalAbierto(false)} 
+                onSuccess={cargarDatos} 
+                availableVehicles={vehiculos} 
             />
 
-            <header className="flex justify-between items-center bg-white p-4 shadow rounded-lg sticky top-0 z-10">
-                <h1 className="text-2xl font-bold text-indigo-600">GesFlot - Dashboard de Empleado</h1>
-                <div className="flex items-center space-x-4">
-                    <p className="text-gray-700 hidden sm:block">Bienvenido, {user?.name}</p>
-                    <button 
-                        onClick={logout}
-                        className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition duration-150 flex items-center space-x-2"
-                    >
-                        <FaSignOutAlt />
-                        <span className="hidden sm:inline">Cerrar Sesión</span>
-                    </button>
+            {/* NAVBAR SUPERIOR (Estilo Aplicación) */}
+            <header className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    {/* Logo */}
+                    <div className="flex items-center gap-2">
+                        <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
+                            <FaCar size={18} />
+                        </div>
+                        <span className="font-bold text-xl text-slate-800 tracking-tight">GesFlot</span>
+                    </div>
+
+                    {/* Menú Usuario */}
+                    <div className="flex items-center gap-4">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-sm font-bold text-slate-700">{user?.name}</p>
+                            <p className="text-xs text-slate-500">Empleado</p>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200 mx-1"></div>
+                        <button 
+                            onClick={logout} 
+                            className="text-slate-500 hover:text-red-600 transition p-2 rounded-full hover:bg-slate-100"
+                            title="Salir"
+                        >
+                            <FaSignOutAlt />
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            <main className="mt-8">
-                {/* Navegación por pestañas */}
-                <div className="flex border-b border-gray-300 mb-6">
-                    <button 
-                        onClick={() => setActiveTab('calendar')}
-                        className={`py-3 px-6 font-semibold transition duration-150 flex items-center space-x-2 ${
-                            activeTab === 'calendar' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-indigo-600'
-                        }`}
-                    >
-                        <FaCalendarAlt />
-                        <span>Disponibilidad</span>
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('my_reservations')}
-                        className={`py-3 px-6 font-semibold transition duration-150 flex items-center space-x-2 ${
-                            activeTab === 'my_reservations' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-indigo-600'
-                        }`}
-                    >
-                        <FaClipboardList />
-                        <span>Mis Reservas</span>
-                    </button>
+            {/* CABECERA DE BIENVENIDA (Hero) */}
+            <div className="bg-indigo-700 text-white pb-24 pt-12 px-4">
+                <div className="max-w-5xl mx-auto">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">Hola, {user?.name?.split(' ')[0]} 👋</h1>
+                            <p className="text-indigo-100 text-lg">¿Necesitas un vehículo para hoy?</p>
+                        </div>
+                        <button 
+                            onClick={() => setModalAbierto(true)}
+                            className="bg-white text-indigo-700 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition transform hover:scale-105 flex items-center gap-2"
+                        >
+                            <FaPlus /> Nueva Reserva
+                        </button>
+                    </div>
                 </div>
+            </div>
+
+            {/* CONTENIDO PRINCIPAL (Montado sobre la cabecera) */}
+            <main className="max-w-5xl mx-auto px-4 -mt-16 pb-12">
                 
-                {error && <p className="text-red-500 mb-4 font-semibold">{error}</p>}
-                
-                {renderContent()}
+                {/* Tarjetas de Resumen */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div className="bg-white p-5 rounded-xl shadow-md border border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-emerald-100 text-emerald-600 p-3 rounded-full">
+                                <FaCalendarCheck size={20} />
+                            </div>
+                            <div>
+                                <p className="text-slate-500 text-sm font-medium uppercase">Confirmadas</p>
+                                <p className="text-2xl font-bold text-slate-800">{confirmadas}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-xl shadow-md border border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-amber-100 text-amber-600 p-3 rounded-full">
+                                <FaClock size={20} />
+                            </div>
+                            <div>
+                                <p className="text-slate-500 text-sm font-medium uppercase">Pendientes</p>
+                                <p className="text-2xl font-bold text-slate-800">{pendientes}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Selector de Vistas (Pestañas grandes) */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                    <div className="flex border-b border-slate-100">
+                        <button 
+                            onClick={() => setVistaActiva('calendario')}
+                            className={`flex-1 py-4 text-center font-medium transition flex items-center justify-center gap-2 ${
+                                vistaActiva === 'calendario' 
+                                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' 
+                                : 'text-slate-500 hover:bg-slate-50'
+                            }`}
+                        >
+                            <FaCalendarAlt /> Calendario de Flota
+                        </button>
+                        <button 
+                            onClick={() => setVistaActiva('listado')}
+                            className={`flex-1 py-4 text-center font-medium transition flex items-center justify-center gap-2 ${
+                                vistaActiva === 'listado' 
+                                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' 
+                                : 'text-slate-500 hover:bg-slate-50'
+                            }`}
+                        >
+                            <FaList /> Mis Reservas
+                        </button>
+                    </div>
+
+                    {/* Área de contenido */}
+                    <div className="p-6">
+                        {cargando ? (
+                            <div className="text-center py-10 text-slate-400">Cargando información...</div>
+                        ) : vistaActiva === 'calendario' ? (
+                            // VISTA CALENDARIO
+                            <div className="animate-fade-in">
+                                <div className="bg-blue-50 border border-blue-100 text-blue-800 p-4 rounded-lg mb-6 flex gap-3">
+                                    <FaCheckCircle className="mt-1 flex-shrink-0" />
+                                    <p className="text-sm">Consulta aquí cuándo están libres los coches. Las franjas blancas son huecos disponibles para reservar.</p>
+                                </div>
+                                <AvailabilityCalendar reservas={reservasGlobales} />
+                            </div>
+                        ) : (
+                            // VISTA LISTADO
+                            <div className="animate-fade-in">
+                                {misReservas.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <p className="text-slate-400 mb-4">No tienes reservas activas.</p>
+                                        <button onClick={() => setModalAbierto(true)} className="text-indigo-600 font-bold hover:underline">¡Haz tu primera reserva!</button>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="text-xs font-bold text-slate-500 uppercase border-b border-slate-200">
+                                                    <th className="py-3 px-2">Vehículo</th>
+                                                    <th className="py-3 px-2">Fechas</th>
+                                                    <th className="py-3 px-2 text-center">Estado</th>
+                                                    <th className="py-3 px-2 text-right">Opción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {misReservas.map((res) => (
+                                                    <tr key={res.id} className="border-b border-slate-50 hover:bg-slate-50 transition">
+                                                        <td className="py-4 px-2">
+                                                            <p className="font-bold text-slate-800">{res.make} {res.model}</p>
+                                                            <span className="text-xs bg-slate-200 px-1.5 py-0.5 rounded text-slate-600 font-mono">{res.license_plate}</span>
+                                                        </td>
+                                                        <td className="py-4 px-2 text-sm text-slate-600">
+                                                            <div><span className="font-bold text-xs text-slate-400">SALIDA:</span> {new Date(res.start_time).toLocaleDateString()} {new Date(res.start_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                                                            <div><span className="font-bold text-xs text-slate-400">LLEGADA:</span> {new Date(res.end_time).toLocaleDateString()} {new Date(res.end_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                                                        </td>
+                                                        <td className="py-4 px-2 text-center">
+                                                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                                                                res.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                                res.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                                                res.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                                {res.status === 'approved' ? 'Aprobada' : res.status === 'pending' ? 'Pendiente' : res.status === 'canceled' ? 'Cancelada' : 'Rechazada'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 px-2 text-right">
+                                                            {(res.status === 'pending' || res.status === 'approved') && (
+                                                                <button 
+                                                                    onClick={() => cancelarReserva(res.id)}
+                                                                    className="text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 px-3 py-1 rounded transition"
+                                                                >
+                                                                    Cancelar
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </main>
         </div>
     );

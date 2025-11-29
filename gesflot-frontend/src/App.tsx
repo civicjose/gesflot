@@ -6,14 +6,14 @@ import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import RegisterPage from './pages/RegisterPage';
 
-// Componente que protege rutas: requiere Token
-const ProtectedRoute: React.FC = () => {
+// Protejo las rutas que necesitan login
+const RutaProtegida: React.FC = () => {
   const { token } = useAuth();
   return token ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
-// Componente que protege rutas: requiere rol Admin
-const AdminRoute: React.FC = () => {
+// Protejo las rutas de admin
+const RutaAdmin: React.FC = () => {
   const { token, isAdmin } = useAuth();
   return token && isAdmin ? <Outlet /> : <Navigate to="/" replace />; 
 };
@@ -22,22 +22,19 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rutas Públicas */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Rutas Protegidas (Requieren Login) */}
-        <Route element={<ProtectedRoute />}>
-          {/* Dashboard según el rol (Ruta raíz / para empleados) */}
+        <Route element={<RutaProtegida />}>
+          {/* Dashboard del empleado (Home) */}
           <Route path="/" element={<EmployeeDashboard />} />
           
-          {/* Rutas solo para Administradores */}
-          <Route element={<AdminRoute />}>
+          <Route element={<RutaAdmin />}>
             <Route path="/admin" element={<AdminDashboard />} />
           </Route>
         </Route>
 
-        {/* Ruta de error/comodín */}
+        {/* Si pone cualquier cosa rara, al home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
